@@ -1,6 +1,22 @@
 // main.js
 // Translation logic, copy/share, modals, showMessage, and helpers
 
+function fillFromSessionStorage() {
+  const selected = sessionStorage.getItem('selectedTranslation');
+  if (selected) {
+    try {
+      const { original, translated } = JSON.parse(selected);
+      const somaliBox = document.getElementById('somaliInput');
+      const englishBox = document.getElementById('englishOutput');
+      if (somaliBox && englishBox) {
+        somaliBox.value = original;
+        englishBox.value = translated;
+      }
+    } catch (e) {}
+    sessionStorage.removeItem('selectedTranslation');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('translateBtn').addEventListener('click', translate);
   document.getElementById("somaliInput").addEventListener("keypress", function(event) {
@@ -33,7 +49,13 @@ document.addEventListener('DOMContentLoaded', function() {
     e.preventDefault();
     showSettings();
   });
+
+  // Fill input/translation if coming from favorite/history
+  fillFromSessionStorage();
 });
+
+// Fallback: Haddii DOMContentLoaded mar hore dhacay, isla markiiba isku day
+fillFromSessionStorage();
 
 async function translate() {
   const input = document.getElementById("somaliInput").value.trim();

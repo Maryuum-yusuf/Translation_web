@@ -33,6 +33,21 @@ async function showFavorites() {
     `).join('');
   }
   modal.style.display = "block";
+
+  setTimeout(() => {
+    document.querySelectorAll('.favorite-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        // Prevent click if clicking on a button inside the item
+        if (e.target.closest('.item-btn')) return;
+        const original = this.querySelector('.somali-text').textContent;
+        const translated = this.querySelector('.english-text').textContent;
+        sessionStorage.setItem('selectedTranslation', JSON.stringify({ original, translated }));
+        closeFavorites();
+        // Go to main screen (index.html)
+        window.location.href = 'index.html';
+      });
+    });
+  }, 0);
 }
 
 function closeFavorites() {
