@@ -223,3 +223,97 @@ window.setupNavListeners = function() {
     showSettings();
   });
 }; 
+
+// Speech-to-text + Translate logic for Somali input
+window.addEventListener('DOMContentLoaded', function() {
+  const micBtn = document.getElementById('micSomaliBtn');
+  const micIcon = document.getElementById('micSomaliIcon');
+  const somaliInput = document.getElementById('somaliInput');
+  const englishOutput = document.getElementById('englishOutput');
+  const clearBtn = document.getElementById('clearSomaliBtn');
+
+  let recognizing = false;
+  let recognition;
+  let lastSpeechInput = '';
+
+  // SpeechRecognition setup
+  if (micBtn && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'so-SO'; // Somali
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = function() {
+      recognizing = true;
+      micIcon.textContent = '🔴';
+    };
+    recognition.onend = function() {
+      recognizing = false;
+      micIcon.textContent = '🎤';
+    };
+    recognition.onerror = function(e) {
+      recognizing = false;
+      micIcon.textContent = '🎤';
+      showMessage('Speech recognition error: ' + e.error, 'error');
+    };
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      somaliInput.value = transcript;
+      lastSpeechInput = transcript;
+      translateSpeechText(transcript);
+    };
+
+    micBtn.addEventListener('click', function() {
+      if (recognizing) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    });
+  } else if (micBtn) {
+    micBtn.disabled = true;
+    micIcon.textContent = '❌';
+    micBtn.title = 'Speech recognition not supported';
+  }
+
+  if (clearBtn && somaliInput) {
+    clearBtn.addEventListener('click', function() {
+      somaliInput.value = '';
+      englishOutput.value = '';
+    });
+  }
+
+  // Manual input: do not auto-translate
+  somaliInput.addEventListener('input', function() {
+    if (somaliInput.value !== lastSpeechInput) {
+      // Manual input, clear English output
+      englishOutput.value = '';
+    }
+  });
+
+  // Unofficial Google Translate API fetch for speech
+  function translateSpeechText(text) {
+    // Use unofficial endpoint (may be rate-limited)
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+    englishOutput.value = 'Translating...';
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        // Data format: [[["translation","original",null,null,...]],null,"so"]
+        const translation = data[0]?.map(item => item[0]).join(' ');
+        englishOutput.value = translation || 'Translation error';
+      })
+      .catch(() => {
+        englishOutput.value = 'Translation error';
+      });
+  }
+}); 
+
+function clearSomaliText() {
+  document.getElementById('somaliInput').value = '';
+}
+
+function clearEnglishText() {
+  document.getElementById('englishOutput').value = '';
+} 

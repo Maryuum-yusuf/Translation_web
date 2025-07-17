@@ -18,33 +18,37 @@
       <div class="text-actions">
         <button class="small-btn" onclick="copySomaliText()" title="Copy Somali Text">
           <span class="icon">📋</span>
-          <span class="btn-text">Copy</span>
+          
         </button>
         <button class="small-btn" onclick="shareSomaliText()" title="Share Somali Text">
           <span class="icon">📤</span>
-          <span class="btn-text">Share</span>
+          
+        </button>
+        <button class="small-btn" id="micSomaliBtn" title="Ku duub codka Somali">
+          <span class="icon" id="micSomaliIcon">🎤</span>
+       
         </button>
       </div>
+      <button class="clear-btn" onclick="clearSomaliText()">Clear</button>
     </div>
-    <div class="middle-column">
-        <button class="small-btn" onclick="addToFavorites()" title="Add to Favorites">
-            <span class="icon">⭐</span>
-            <span class="btn-text">Favorite</span>
-        </button>
-    </div>
+  
     <div class="column">
       <label for="englishOutput">English</label>
       <textarea id="englishOutput" placeholder="Translation" readonly></textarea>
       <div class="text-actions">
+        <button class="small-btn" onclick="addToFavorites()" title="Add to Favorites">
+          <span class="icon">⭐</span>
+      </button>
         <button class="small-btn" onclick="copyEnglishText()" title="Copy English Text">
           <span class="icon">📋</span>
-          <span class="btn-text">Copy</span>
+          
         </button>
         <button class="small-btn" onclick="shareEnglishText()" title="Share English Text">
           <span class="icon">📤</span>
-          <span class="btn-text">Share</span>
+         
         </button>
       </div>
+      <button class="clear-btn" onclick="clearEnglishText()">Clear</button>
     </div>
   </div>
 
