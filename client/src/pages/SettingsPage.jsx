@@ -1,8 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { isAuthed } from '../lib/api.js';
 
 export default function SettingsPage({ addToast }) {
+  const navigate = useNavigate();
   const [dark, setDark] = useState(localStorage.getItem('darkMode') === 'true');
   const [textSize, setTextSize] = useState(parseInt(localStorage.getItem('textSize') || '16', 10));
+
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isAuthed()) {
+      navigate('/login');
+      return;
+    }
+  }, [navigate]);
 
   // Apply persisted setting on first render only, without toast
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api.js';
 
 export default function FavoritesModal({ open, onClose, addToast }) {
   const [items, setItems] = useState([]);
@@ -9,29 +10,35 @@ export default function FavoritesModal({ open, onClose, addToast }) {
     if (!open) return;
     (async () => {
       try {
-        const res = await fetch('/api/favorites');
-        const data = await res.json();
+        const data = await api('/favorites');
         const sorted = (data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setItems(sorted);
       } catch (e) {
-        addToast('Failed to load favorites', 'error');
+        addToast('Failed to load favorites: ' + e.message, 'error');
       }
     })();
   }, [open, addToast]);
 
   async function removeItem(id) {
-    await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
-    addToast('Removed from favorites!', 'success');
-    const res = await fetch('/api/favorites');
-    const data = await res.json();
-    setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    try {
+      await api(`/favorites/${id}`, { method: 'DELETE' });
+      addToast('Removed from favorites!', 'success');
+      const data = await api('/favorites');
+      setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (e) {
+      addToast('Failed to remove item: ' + e.message, 'error');
+    }
   }
 
   async function clearAllFavorites() {
     if (!confirm('Are you sure you want to clear all favorites?')) return;
-    await fetch('/api/favorites', { method: 'DELETE' });
-    addToast('All favorites cleared!', 'success');
-    setItems([]);
+    try {
+      await api('/favorites', { method: 'DELETE' });
+      addToast('All favorites cleared!', 'success');
+      setItems([]);
+    } catch (e) {
+      addToast('Failed to clear favorites: ' + e.message, 'error');
+    }
   }
 
   function choose(item) {

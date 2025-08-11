@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MicIcon, CopyIcon, ShareIcon, StarIcon, CloseIcon, VolumeIcon } from './icons.jsx';
+import { api } from '../lib/api.js';
 
 export default function Translator({ addToast }) {
   const [somaliText, setSomaliText] = useState('');
   const [englishText, setEnglishText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const lastTranslationIdRef = useRef(null);
   const recognizingRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastSpeechInputRef = useRef('');
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   // Fill from sessionStorage if navigated from history/favorites
   useEffect(() => {
@@ -31,15 +35,25 @@ export default function Translator({ addToast }) {
     }
     setEnglishText('Translating...');
     try {
-      const res = await fetch('/api/translate', {
+      const data = await api('/translate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ text: input })
+        body: { text: input }
       });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
+      
+      console.log('API Response:', data); // Debug logging
+      
+      // Check for error message in response (even if status is 200)
+      if (data.error) {
+        console.log('Backend Error:', data.error); // Debug logging
+        setEnglishText(data.error);
+        return;
+      }
+      
       setEnglishText(data.translated_text || '');
       lastTranslationIdRef.current = data.id || null;
+      
+      // Note: History is automatically saved by the backend translation endpoint
+      // No need to save again here to avoid duplicates
     } catch (e) {
       setEnglishText(`Error: ${e.message}. Please check if the API server is running.`);
     }
@@ -73,42 +87,212 @@ export default function Translator({ addToast }) {
     }
     const id = lastTranslationIdRef.current;
     if (!id) { addToast('Translate first!', 'error'); return; }
-    await fetch('/api/favorite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-    addToast('Added to favorites!', 'success');
+    
+    try {
+      await api('/favorite', { method: 'POST', body: { id } });
+      addToast('Added to favorites!', 'success');
+    } catch (err) {
+      addToast('Failed to add to favorites: ' + err.message, 'error');
+    }
   }
 
-  // Speech recognition
-  useEffect(() => {
-    const btn = document.getElementById('micSomaliBtn');
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!btn) return;
-    if (!SpeechRecognition) {
-      btn.disabled = true;
-      btn.title = 'Speech recognition not supported';
-      return;
+  // Voice recording and processing
+  async function startVoiceRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Start speech recognition immediately for live transcription
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        addToast('Speech recognition not supported in this browser', 'error');
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'so-SO';
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = true;
+      
+      let finalTranscript = '';
+      let interimTranscript = '';
+      
+      recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+        
+        finalTranscript += final;
+        interimTranscript = interim;
+        
+        // Update Somali text in real-time
+        setSomaliText(finalTranscript + interimTranscript);
+      };
+      
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'no-speech') {
+          addToast('No speech detected. Please try again.', 'error');
+        }
+      };
+      
+      recognition.onend = () => {
+        console.log('Speech recognition ended');
+        setIsRecording(false);
+        setIsProcessingVoice(true);
+        setEnglishText('Processing voice recording...');
+        
+        // Process the final transcript
+        processVoiceRecording(finalTranscript, stream);
+      };
+      
+      // Start recording audio
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        // Stop speech recognition when audio recording stops
+        recognition.stop();
+      };
+      
+      // Start both recording and recognition
+      mediaRecorder.start();
+      recognition.start();
+      setIsRecording(true);
+      addToast('Recording started... Click again to stop', 'success');
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      addToast('Could not access microphone. Please check permissions.', 'error');
     }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'so-SO';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => { recognizingRef.current = true; setIsRecording(true); };
-    recognition.onend = () => { recognizingRef.current = false; setIsRecording(false); };
-    recognition.onerror = (e) => { recognizingRef.current = false; setIsRecording(false); addToast('Speech recognition error: ' + e.error, 'error'); };
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      lastSpeechInputRef.current = transcript;
-      setSomaliText(transcript);
-      // auto-translate speech
-      translateSpeechText(transcript);
-    };
-    recognitionRef.current = recognition;
-    const handler = () => {
-      if (recognizingRef.current) recognition.stop(); else recognition.start();
-    };
-    btn.addEventListener('click', handler);
-    return () => { btn.removeEventListener('click', handler); recognition.stop(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addToast]);
+  }
+  
+  async function processVoiceRecording(transcribedText, stream) {
+    try {
+      if (!transcribedText.trim()) {
+        setEnglishText('No speech detected. Please try again.');
+        setIsProcessingVoice(false);
+        return;
+      }
+      
+      // Create audio blob from recorded chunks
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      
+      // Upload to backend for language detection and translation
+      await uploadVoiceToBackend(audioBlob, transcribedText);
+      
+    } catch (error) {
+      console.error('Voice processing error:', error);
+      setEnglishText('Error processing voice recording. Please try again.');
+    } finally {
+      setIsProcessingVoice(false);
+      // Stop all tracks
+      stream.getTracks().forEach(track => track.stop());
+    }
+  }
+  
+  function stopVoiceRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+  }
+  
+
+  
+  async function uploadVoiceToBackend(audioBlob, transcribedText) {
+    try {
+      // Check if user is authenticated
+      const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      
+      if (!authToken) {
+        // If no token, just show the transcribed text and use Google Translate
+        setEnglishText('Processing transcription...');
+        
+        // Use Google Translate as fallback
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(transcribedText)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        const translation = data?.[0]?.map(item => item[0]).join(' ');
+        setEnglishText(translation || 'Translation completed');
+        addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
+        return;
+      }
+      
+      // Create file from blob
+      const audioFile = new File([audioBlob], `voice_recording_${Date.now()}.webm`, {
+        type: 'audio/webm'
+      });
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('audio', audioFile);
+      formData.append('transcribed_text', transcribedText);
+      
+      // Upload to backend with authentication
+      try {
+        const data = await api('/voice/translate', {
+          method: 'POST',
+          body: formData,
+          headers: {} // Let api() function handle auth headers
+        });
+        
+        if (data.error) {
+          setEnglishText(data.error);
+          if (data.language_detection) {
+            console.log('Language detection:', data.language_detection);
+          }
+        } else {
+          setEnglishText(data.translated_text || 'Translation completed');
+          addToast('Voice translation saved to database!', 'success');
+        }
+      } catch (error) {
+        // If authentication fails, use fallback
+        console.log('Authentication failed, using fallback translation');
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(transcribedText)}`;
+        const fallbackResponse = await fetch(url);
+        const fallbackData = await fallbackResponse.json();
+        
+        const translation = fallbackData?.[0]?.map(item => item[0]).join(' ');
+        setEnglishText(translation || 'Translation completed');
+        addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
+              }
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      
+      // Fallback to Google Translate on any error
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(transcribedText)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        const translation = data?.[0]?.map(item => item[0]).join(' ');
+        setEnglishText(translation || 'Translation completed');
+        addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
+      } catch (fallbackError) {
+        setEnglishText('Error processing voice recording. Please try again.');
+      }
+    }
+  }
 
   function translateSpeechText(text) {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(text)}`;
@@ -138,7 +322,15 @@ export default function Translator({ addToast }) {
               if (value !== lastSpeechInputRef.current) setEnglishText('');
             }} />
             <div className="corner bottom-left actions">
-              <button className="icon-btn" id="micSomaliBtn" title="Ku duub codka Somali">{isRecording ? <span className="rec-indicator" /> : <MicIcon />}</button>
+              <button 
+                className="icon-btn" 
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                title={isRecording ? "Click to stop recording" : "Ku duub codka Somali"}
+                disabled={isProcessingVoice}
+                style={{ opacity: isProcessingVoice ? 0.5 : 1 }}
+              >
+                {isRecording ? <span className="rec-indicator" /> : <MicIcon />}
+              </button>
               <button className="icon-btn" onClick={() => copyToClipboard(somaliText, 'Somali text copied!')} title="Copy Somali Text"><CopyIcon /></button>
             </div>
           </div>
@@ -158,7 +350,16 @@ export default function Translator({ addToast }) {
       </div>
 
       <div className="center-actions-below">
-        <button id="translateBtn" className="translate-btn-main" onClick={translate}>Translate</button>
+        <button 
+          id="translateBtn" 
+          className="translate-btn-main" 
+          onClick={translate}
+          disabled={isProcessingVoice}
+        >
+          {isProcessingVoice ? 'Processing Voice...' : 'Translate'}
+        </button>
+        
+        
       </div>
     </div>
   );

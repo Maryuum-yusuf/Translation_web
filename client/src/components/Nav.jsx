@@ -1,21 +1,152 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { isAuthed, getAuth, logout } from '../lib/api.js';
 
-export default function Nav({ onNavigate, active }) {
+export default function Nav({ active }) {
+  const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const auth = getAuth();
+  const isLoggedIn = isAuthed();
+
+  const handleNavClick = (section) => {
+    // Check if user is logged in for protected features
+    if (!isLoggedIn && (section === 'history' || section === 'favorites' || section === 'voice-history' || section === 'settings')) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    // Navigate using React Router
+    switch (section) {
+      case 'home':
+        navigate('/');
+        break;
+      case 'history':
+        navigate('/history');
+        break;
+      case 'favorites':
+        navigate('/favorites');
+        break;
+      case 'voice-history':
+        navigate('/voice-history');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      default:
+        navigate('/');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/'); // Navigate to home page after logout
+  };
+
   return (
-    <div className="nav-bar">
-      <div className="nav-inner">
-        <div className="brand">
-          <span className="brand-name">Somali ➜ English Translator</span>
+    <>
+      <div className="nav-bar">
+        <div className="nav-inner">
+          <div className="brand">
+            <span className="brand-name">Somali ➜ English Translator</span>
+          </div>
+          <nav className="nav-tabs">
+            <a 
+              className={active === 'home' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('home'); }}
+            >
+              Translation
+            </a>
+            <a 
+              className={active === 'history' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('history'); }}
+            >
+              History
+            </a>
+            <a 
+              className={active === 'favorites' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('favorites'); }}
+            >
+              Favorites
+            </a>
+            <a 
+              className={active === 'voice-history' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('voice-history'); }}
+            >
+              Voice History
+            </a>
+            <a 
+              className={active === 'settings' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('settings'); }}
+            >
+              Settings
+            </a>
+            <a className={active === 'admin' ? 'active' : ''} href="/admin/login">Admin Panel</a>
+          </nav>
+          
+          {/* User Profile Section */}
+          <div className="user-profile">
+            {isLoggedIn ? (
+              <div className="user-info">
+                <span className="user-name">{auth?.fullName || auth?.email || 'User'}</span>
+                <button className="logout-btn" onClick={handleLogout}>
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="auth-buttons">
+              
+              </div>
+            )}
+          </div>
         </div>
-        <nav className="nav-tabs">
-          <a className={active === 'home' ? 'active' : ''} href="#" onClick={(e) => { e.preventDefault(); onNavigate('home'); }}>Translation</a>
-          <a className={active === 'history' ? 'active' : ''} href="/history">History</a>
-          <a className={active === 'favorites' ? 'active' : ''} href="/favorites">Favorites</a>
-          <a className={active === 'settings' ? 'active' : ''} href="/settings">Settings</a>
-          <a className={active === 'admin' ? 'active' : ''} href="/admin">Admin Panel</a>
-        </nav>
       </div>
-    </div>
+
+      {/* Login/Register Modal */}
+      {showLoginModal && (
+        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Login Required</h3>
+              <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Please login or register to access this feature.</p>
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    navigate('/login');
+                  }}
+                >
+                  Login
+                </button>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    navigate('/register');
+                  }}
+                >
+                  Register
+                </button>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setShowLoginModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

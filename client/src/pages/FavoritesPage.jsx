@@ -1,36 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAuthed, api } from '../lib/api.js';
 
 export default function FavoritesPage({ addToast }) {
   const [items, setItems] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!isAuthed()) {
+      navigate('/login');
+      return;
+    }
+
     (async () => {
       try {
-        const res = await fetch('/api/favorites');
-        const data = await res.json();
+        const data = await api('/favorites');
         const sorted = (data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setItems(sorted);
       } catch (e) {
-        addToast && addToast('Failed to load favorites', 'error');
+        addToast && addToast('Failed to load favorites: ' + e.message, 'error');
       }
     })();
-  }, [addToast]);
+  }, [addToast, navigate]);
 
   async function removeItem(id) {
-    await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
-    addToast && addToast('Removed from favorites!', 'success');
-    const res = await fetch('/api/favorites');
-    const data = await res.json();
-    setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    try {
+      await api(`/favorites/${id}`, { method: 'DELETE' });
+      addToast && addToast('Removed from favorites!', 'success');
+      const data = await api('/favorites');
+      setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (e) {
+      addToast && addToast('Failed to remove item: ' + e.message, 'error');
+    }
   }
 
   async function clearAll() {
     if (!confirm('Clear all favorites?')) return;
-    await fetch('/api/favorites', { method: 'DELETE' });
-    addToast && addToast('All favorites cleared!', 'success');
-    setItems([]);
+    try {
+      await api('/favorites', { method: 'DELETE' });
+      addToast && addToast('All favorites cleared!', 'success');
+      setItems([]);
+    } catch (e) {
+      addToast && addToast('Failed to clear favorites: ' + e.message, 'error');
+    }
   }
 
   function choose(item) {

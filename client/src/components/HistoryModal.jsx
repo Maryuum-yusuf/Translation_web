@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api.js';
 
 export default function HistoryModal({ open, onClose, addToast }) {
   const [items, setItems] = useState([]);
@@ -9,22 +10,27 @@ export default function HistoryModal({ open, onClose, addToast }) {
     if (!open) return;
     (async () => {
       try {
-        const res = await fetch('/api/history');
-        const data = await res.json();
-        const sorted = (data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const data = await api('/history');
+        // Backend returns {translations: [...]} format
+        const translations = data?.translations || [];
+        const sorted = translations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setItems(sorted);
       } catch (e) {
-        addToast('Failed to load history', 'error');
+        addToast('Failed to load history: ' + e.message, 'error');
       }
     })();
   }, [open, addToast]);
 
   async function removeItem(id) {
-    await fetch(`/api/history/${id}`, { method: 'DELETE' });
-    addToast('Removed from history!', 'success');
-    const res = await fetch('/api/history');
-    const data = await res.json();
-    setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    try {
+      await api(`/history/${id}`, { method: 'DELETE' });
+      addToast('Removed from history!', 'success');
+      const data = await api('/history');
+      const translations = data?.translations || [];
+      setItems(translations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (e) {
+      addToast('Failed to remove item: ' + e.message, 'error');
+    }
   }
 
   function choose(item) {

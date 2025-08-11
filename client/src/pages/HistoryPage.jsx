@@ -1,36 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAuthed, api } from '../lib/api.js';
 
 export default function HistoryPage({ addToast }) {
   const [items, setItems] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!isAuthed()) {
+      navigate('/login');
+      return;
+    }
+
     (async () => {
       try {
-        const res = await fetch('/api/history');
-        const data = await res.json();
-        const sorted = (data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const data = await api('/history');
+        // Backend returns {translations: [...]} format
+        const translations = data?.translations || [];
+        const sorted = translations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setItems(sorted);
       } catch (e) {
-        addToast && addToast('Failed to load history', 'error');
+        addToast && addToast('Failed to load history: ' + e.message, 'error');
       }
     })();
-  }, [addToast]);
+  }, [addToast, navigate]);
 
   async function removeItem(id) {
-    await fetch(`/api/history/${id}`, { method: 'DELETE' });
-    addToast && addToast('Removed from history!', 'success');
-    const res = await fetch('/api/history');
-    const data = await res.json();
-    setItems((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    try {
+      await api(`/history/${id}`, { method: 'DELETE' });
+      addToast && addToast('Removed from history!', 'success');
+      const data = await api('/history');
+      const translations = data?.translations || [];
+      setItems(translations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (e) {
+      addToast && addToast('Failed to remove item: ' + e.message, 'error');
+    }
   }
 
   async function clearAll() {
     if (!confirm('Clear all history?')) return;
-    await fetch('/api/history', { method: 'DELETE' });
-    addToast && addToast('All history cleared!', 'success');
-    setItems([]);
+    try {
+      await api('/history', { method: 'DELETE' });
+      addToast && addToast('All history cleared!', 'success');
+      setItems([]);
+    } catch (e) {
+      addToast && addToast('Failed to clear history: ' + e.message, 'error');
+    }
   }
 
   function choose(item) {
