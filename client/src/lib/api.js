@@ -247,4 +247,41 @@ export function getReportsSummary() {
   return api('/admin/reports/summary');
 }
 
+// Voice Recording API functions
+export function saveVoiceRecording(data) {
+  return api('/voice/save', { method: 'POST', body: data });
+}
+
+export function getVoiceRecordings() {
+  return api('/voice/recordings');
+}
+
+export function getVoiceRecording(id) {
+  return api(`/voice/recordings/${id}`);
+}
+
+export function getVoiceAudioData(id) {
+  return api(`/voice/recordings/${id}/audio-data`);
+}
+
+export function deleteVoiceRecording(id) {
+  return api(`/voice/recordings/${id}`, { method: 'DELETE' });
+}
+
+export function toggleFavoriteRecording(id) {
+  return api(`/voice/recordings/${id}/favorite`, { method: 'POST' });
+}
+
+export function getFavoriteRecordings() {
+  return api('/voice/favorites');
+}
+
+export function clearAllRecordings() {
+  return api('/voice/recordings', { method: 'DELETE' });
+}
+
+export function updateVoiceRecording(id, data) {
+  return api(`/voice/recordings/${id}`, { method: 'PUT', body: data });
+}
+
 

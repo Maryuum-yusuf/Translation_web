@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MicIcon, CopyIcon, ShareIcon, StarIcon, CloseIcon, VolumeIcon } from './icons.jsx';
-import { api, isAuthed, getAuth, logout } from '../lib/api.js';
+import { api, isAuthed, getAuth, logout, saveVoiceRecording, updateVoiceRecording } from '../lib/api.js';
 import { useNavigate } from 'react-router-dom';
 
 export default function Translator({ addToast }) {
@@ -84,7 +84,7 @@ export default function Translator({ addToast }) {
   async function addToFavorites() {
     const s = somaliText.trim();
     const e = englishText.trim();
-    if (!s || !e || e === 'Translation' || e.includes('Error') || e.includes('Processing')) {
+    if (!s || !e || e.includes('Error') || e.includes('Processing') || e === 'Translating...') {
       addToast('Please translate something first!', 'error');
       return;
     }
@@ -246,9 +246,7 @@ export default function Translator({ addToast }) {
   async function uploadVoiceToBackend(audioBlob, transcribedText) {
     try {
       // Check if user is authenticated
-      const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-      
-      if (!authToken) {
+      if (!isAuthed()) {
         // If no token, just show the transcribed text and use Google Translate
         setEnglishText('Processing transcription...');
         
@@ -258,76 +256,66 @@ export default function Translator({ addToast }) {
         const data = await response.json();
         
         const translation = data?.[0]?.map(item => item[0]).join(' ');
-        setEnglishText(translation || 'Translation completed');
+        console.log('Non-authenticated translation:', translation);
+        setEnglishText(translation || '');
         addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
-        
-        // Save to history if user is logged in
-        if (isAuthed()) {
-          try {
-            await api('/history', { method: 'POST', body: { 
-              original_text: transcribedText, 
-              translated_text: translation,
-              source: 'voice'
-            }});
-          } catch (err) {
-            console.log('Failed to save voice translation to history:', err);
-          }
-        }
         return;
       }
       
-      // Create file from blob
-      const audioFile = new File([audioBlob], `voice_recording_${Date.now()}.webm`, {
-        type: 'audio/webm'
-      });
+      // Convert audio blob to base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const base64Audio = btoa(String.fromCharCode(...uint8Array));
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('audio', audioFile);
-      formData.append('transcribed_text', transcribedText);
+      // Create data URL
+      const audioDataUrl = `data:audio/webm;base64,${base64Audio}`;
       
-      // Upload to backend with authentication
+      // Calculate duration (approximate)
+      const duration = audioBlob.size / 16000; // Rough estimate based on file size
+      
+      // Save voice recording to backend
       try {
-        const data = await api('/voice/translate', {
-          method: 'POST',
-          body: formData,
-          headers: {} // Let api() function handle auth headers
+        const data = await saveVoiceRecording({
+          audio_data: audioDataUrl,
+          duration: duration,
+          language: 'Somali',
+          transcription: transcribedText,
+          translation: '' // Will be filled by backend
         });
         
         if (data.error) {
           setEnglishText(data.error);
-          if (data.language_detection) {
-            console.log('Language detection:', data.language_detection);
-          }
+          addToast('Voice recording saved but translation failed', 'error');
         } else {
-          const translatedText = data.translated_text || 'Translation completed';
+          // The backend now automatically translates, so we can use the returned translation
+          console.log('Backend response:', data);
+          let translatedText = data.translation || '';
+          
+          // If backend didn't return translation, use Google Translate as fallback
+          if (!translatedText) {
+            console.log('No translation from backend, using Google Translate fallback');
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(transcribedText)}`;
+            const fallbackResponse = await fetch(url);
+            const fallbackData = await fallbackResponse.json();
+            translatedText = fallbackData?.[0]?.map(item => item[0]).join(' ') || '';
+          }
+          
+          console.log('Setting translation to:', translatedText);
           setEnglishText(translatedText);
-          lastTranslationIdRef.current = data.id || null;
-          addToast('Voice translation saved to database!', 'success');
+          
+          addToast('Voice recording saved and translated!', 'success');
         }
       } catch (error) {
-        // If authentication fails, use fallback
-        console.log('Authentication failed, using fallback translation');
+        console.log('Voice recording save failed, using fallback translation');
+        
+        // Fallback to Google Translate
         const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=so&tl=en&dt=t&q=${encodeURIComponent(transcribedText)}`;
         const fallbackResponse = await fetch(url);
         const fallbackData = await fallbackResponse.json();
         
         const translation = fallbackData?.[0]?.map(item => item[0]).join(' ');
-        setEnglishText(translation || 'Translation completed');
-        addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
-        
-        // Save to history if user is logged in
-        if (isAuthed()) {
-          try {
-            await api('/history', { method: 'POST', body: { 
-              original_text: transcribedText, 
-              translated_text: translation,
-              source: 'voice'
-            }});
-          } catch (err) {
-            console.log('Failed to save voice translation to history:', err);
-          }
-        }
+        setEnglishText(translation);
+        addToast('Voice transcribed and translated! (No database storage)', 'success');
       }
       
     } catch (error) {
@@ -340,21 +328,8 @@ export default function Translator({ addToast }) {
         const data = await response.json();
         
         const translation = data?.[0]?.map(item => item[0]).join(' ');
-        setEnglishText(translation || 'Translation completed');
-        addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
-        
-        // Save to history if user is logged in
-        if (isAuthed()) {
-          try {
-            await api('/history', { method: 'POST', body: { 
-              original_text: transcribedText, 
-              translated_text: translation,
-              source: 'voice'
-            }});
-          } catch (err) {
-            console.log('Failed to save voice translation to history:', err);
-          }
-        }
+        setEnglishText(translation || '');
+        addToast('Voice transcribed and translated! (No database storage)', 'success');
       } catch (fallbackError) {
         setEnglishText('Error processing voice recording. Please try again.');
       }
@@ -368,7 +343,7 @@ export default function Translator({ addToast }) {
       .then(res => res.json())
       .then(data => {
         const translation = data?.[0]?.map(item => item[0]).join(' ');
-        setEnglishText(translation || 'Translation error');
+        setEnglishText(translation || '');
       })
       .catch(() => setEnglishText('Translation error'));
   }

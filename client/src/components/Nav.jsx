@@ -10,7 +10,7 @@ export default function Nav({ active }) {
 
   const handleNavClick = (section) => {
     // Check if user is logged in for protected features
-    if (!isLoggedIn && (section === 'history' || section === 'favorites' || section === 'settings')) {
+    if (!isLoggedIn && (section === 'history' || section === 'favorites' || section === 'voice-recordings')) {
       setShowLoginModal(true);
       return;
     }
@@ -28,6 +28,9 @@ export default function Nav({ active }) {
         break;
       case 'settings':
         navigate('/settings');
+        break;
+      case 'voice-recordings':
+        navigate('/voice-recordings');
         break;
       default:
         navigate('/');
@@ -75,6 +78,13 @@ export default function Nav({ active }) {
               onClick={(e) => { e.preventDefault(); handleNavClick('settings'); }}
             >
               Settings
+            </a>
+            <a 
+              className={active === 'voice-recordings' ? 'active' : ''} 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); handleNavClick('voice-recordings'); }}
+            >
+              Voice Recordings
             </a>
             <a className={active === 'admin' ? 'active' : ''} href="/admin/login">Sign Up</a>
           </nav>

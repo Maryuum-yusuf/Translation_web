@@ -13,6 +13,7 @@ import AdminDebug from './pages/AdminDebug.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
 import FavoritesPage from './pages/FavoritesPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import VoiceRecordingsPage from './pages/VoiceRecordingsPage.jsx';
 import VoiceHistoryPage from './pages/VoiceHistoryPage.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -44,6 +45,7 @@ function App() {
     if (location.pathname.startsWith('/history')) return 'history';
     if (location.pathname.startsWith('/favorites')) return 'favorites';
     if (location.pathname.startsWith('/settings')) return 'settings';
+    if (location.pathname.startsWith('/voice-recordings')) return 'voice-recordings';
     if (location.pathname.startsWith('/voice-history')) return 'voice-history';
     if (location.pathname.startsWith('/admin')) return 'admin';
     return 'home';
@@ -59,6 +61,7 @@ function App() {
         <Route path="/history" element={<HistoryPage addToast={addToast} />} />
         <Route path="/favorites" element={<FavoritesPage addToast={addToast} />} />
         <Route path="/settings" element={<SettingsPage addToast={addToast} />} />
+        <Route path="/voice-recordings" element={<VoiceRecordingsPage addToast={addToast} />} />
         <Route path="/voice-history" element={<VoiceHistoryPage addToast={addToast} />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/login" element={<AdminLogin />} />
