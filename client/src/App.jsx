@@ -6,7 +6,6 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminUsers from './pages/AdminUsers.jsx';
 import AdminAnalytics from './pages/AdminAnalytics.jsx';
-import AdminSettings from './pages/AdminSettings.jsx';
 import AdminLogin from './pages/admin/AdminLogin.jsx';
 import AdminRegister from './pages/admin/AdminRegister.jsx';
 import AdminDebug from './pages/AdminDebug.jsx';
@@ -70,7 +69,6 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/debug" element={<AdminDebug />} />
       </Routes>
 

@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MicIcon, CopyIcon, ShareIcon, StarIcon, CloseIcon, VolumeIcon } from './icons.jsx';
-import { api } from '../lib/api.js';
+import { api, isAuthed, getAuth, logout } from '../lib/api.js';
+import { useNavigate } from 'react-router-dom';
 
 export default function Translator({ addToast }) {
   const [somaliText, setSomaliText] = useState('');
   const [englishText, setEnglishText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const lastTranslationIdRef = useRef(null);
   const recognizingRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastSpeechInputRef = useRef('');
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const navigate = useNavigate();
 
   // Fill from sessionStorage if navigated from history/favorites
   useEffect(() => {
@@ -81,16 +84,33 @@ export default function Translator({ addToast }) {
   async function addToFavorites() {
     const s = somaliText.trim();
     const e = englishText.trim();
-    if (!s || !e || e === 'Translation' || e.includes('Error')) {
+    if (!s || !e || e === 'Translation' || e.includes('Error') || e.includes('Processing')) {
       addToast('Please translate something first!', 'error');
       return;
     }
+    
+    // Check if user is logged in
+    if (!isAuthed()) {
+      addToast('Please login to save favorites!', 'error');
+      return;
+    }
+    
     const id = lastTranslationIdRef.current;
-    if (!id) { addToast('Translate first!', 'error'); return; }
     
     try {
-      await api('/favorite', { method: 'POST', body: { id } });
-      addToast('Added to favorites!', 'success');
+      if (id) {
+        // If we have a translation ID from backend, use it
+        await api('/favorite', { method: 'POST', body: { id } });
+        addToast('Added to favorites!', 'success');
+      } else {
+        // For voice recordings or fallback translations, save directly
+        await api('/favorite', { method: 'POST', body: { 
+          original_text: s, 
+          translated_text: e,
+          source: 'voice' // Mark as voice recording
+        }});
+        addToast('added to favorites!', 'success');
+      }
     } catch (err) {
       addToast('Failed to add to favorites: ' + err.message, 'error');
     }
@@ -98,6 +118,12 @@ export default function Translator({ addToast }) {
 
   // Voice recording and processing
   async function startVoiceRecording() {
+    // Check if user is logged in for voice recording
+    if (!isAuthed()) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -234,6 +260,19 @@ export default function Translator({ addToast }) {
         const translation = data?.[0]?.map(item => item[0]).join(' ');
         setEnglishText(translation || 'Translation completed');
         addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
+        
+        // Save to history if user is logged in
+        if (isAuthed()) {
+          try {
+            await api('/history', { method: 'POST', body: { 
+              original_text: transcribedText, 
+              translated_text: translation,
+              source: 'voice'
+            }});
+          } catch (err) {
+            console.log('Failed to save voice translation to history:', err);
+          }
+        }
         return;
       }
       
@@ -261,7 +300,9 @@ export default function Translator({ addToast }) {
             console.log('Language detection:', data.language_detection);
           }
         } else {
-          setEnglishText(data.translated_text || 'Translation completed');
+          const translatedText = data.translated_text || 'Translation completed';
+          setEnglishText(translatedText);
+          lastTranslationIdRef.current = data.id || null;
           addToast('Voice translation saved to database!', 'success');
         }
       } catch (error) {
@@ -274,7 +315,20 @@ export default function Translator({ addToast }) {
         const translation = fallbackData?.[0]?.map(item => item[0]).join(' ');
         setEnglishText(translation || 'Translation completed');
         addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
-              }
+        
+        // Save to history if user is logged in
+        if (isAuthed()) {
+          try {
+            await api('/history', { method: 'POST', body: { 
+              original_text: transcribedText, 
+              translated_text: translation,
+              source: 'voice'
+            }});
+          } catch (err) {
+            console.log('Failed to save voice translation to history:', err);
+          }
+        }
+      }
       
     } catch (error) {
       console.error('Upload error:', error);
@@ -288,6 +342,19 @@ export default function Translator({ addToast }) {
         const translation = data?.[0]?.map(item => item[0]).join(' ');
         setEnglishText(translation || 'Translation completed');
         addToast('Voice transcribed and translated! (No database storage - please login for full features)', 'success');
+        
+        // Save to history if user is logged in
+        if (isAuthed()) {
+          try {
+            await api('/history', { method: 'POST', body: { 
+              original_text: transcribedText, 
+              translated_text: translation,
+              source: 'voice'
+            }});
+          } catch (err) {
+            console.log('Failed to save voice translation to history:', err);
+          }
+        }
       } catch (fallbackError) {
         setEnglishText('Error processing voice recording. Please try again.');
       }
@@ -325,7 +392,7 @@ export default function Translator({ addToast }) {
               <button 
                 className="icon-btn" 
                 onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                title={isRecording ? "Click to stop recording" : "Ku duub codka Somali"}
+                title={isRecording ? "Click to stop recording" : (isAuthed() ? "Ku duub codka Somali" : "Login required for voice recording")}
                 disabled={isProcessingVoice}
                 style={{ opacity: isProcessingVoice ? 0.5 : 1 }}
               >
@@ -358,9 +425,33 @@ export default function Translator({ addToast }) {
         >
           {isProcessingVoice ? 'Processing Voice...' : 'Translate'}
         </button>
-        
-        
       </div>
+
+      {/* Login/Register Modal */}
+      {showLoginModal && (
+        <div className="modal-overlay" style={{ display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }} onClick={() => setShowLoginModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Login Required</h3>
+              <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Voice translation requires login. Please login or register to use this feature.</p>
+              <div className="modal-actions">
+                <button className="btn btn-primary" onClick={() => navigate('/login')}>
+                  Login
+                </button>
+                <button className="btn btn-secondary" onClick={() => navigate('/register')}>
+                  Register
+                </button>
+                <button className="btn btn-outline" onClick={() => setShowLoginModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

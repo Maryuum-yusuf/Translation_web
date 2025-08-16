@@ -10,7 +10,7 @@ export default function Nav({ active }) {
 
   const handleNavClick = (section) => {
     // Check if user is logged in for protected features
-    if (!isLoggedIn && (section === 'history' || section === 'favorites' || section === 'voice-history' || section === 'settings')) {
+    if (!isLoggedIn && (section === 'history' || section === 'favorites' || section === 'settings')) {
       setShowLoginModal(true);
       return;
     }
@@ -25,9 +25,6 @@ export default function Nav({ active }) {
         break;
       case 'favorites':
         navigate('/favorites');
-        break;
-      case 'voice-history':
-        navigate('/voice-history');
         break;
       case 'settings':
         navigate('/settings');
@@ -71,13 +68,7 @@ export default function Nav({ active }) {
             >
               Favorites
             </a>
-            <a 
-              className={active === 'voice-history' ? 'active' : ''} 
-              href="#" 
-              onClick={(e) => { e.preventDefault(); handleNavClick('voice-history'); }}
-            >
-              Voice History
-            </a>
+          
             <a 
               className={active === 'settings' ? 'active' : ''} 
               href="#" 
@@ -85,7 +76,7 @@ export default function Nav({ active }) {
             >
               Settings
             </a>
-            <a className={active === 'admin' ? 'active' : ''} href="/admin/login">Admin Panel</a>
+            <a className={active === 'admin' ? 'active' : ''} href="/admin/login">Sign Up</a>
           </nav>
           
           {/* User Profile Section */}
@@ -108,7 +99,7 @@ export default function Nav({ active }) {
 
       {/* Login/Register Modal */}
       {showLoginModal && (
-        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
+        <div className="modal-overlay" style={{ display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }} onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Login Required</h3>
@@ -116,6 +107,9 @@ export default function Nav({ active }) {
             </div>
             <div className="modal-body">
               <p>Please login or register to access this feature.</p>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
+                
+              </p>
               <div className="modal-actions">
                 <button 
                   className="btn btn-primary" 

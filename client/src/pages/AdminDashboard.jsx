@@ -306,26 +306,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="recent-card">
-            <div className="recent-head">System Statistics</div>
-            <ul className="recent-list">
-              <li>
-                <span className="dot blue" /> 
-                <span className="text">Total Users: {dashboardData?.total_users || 0}</span> 
-                <span className="muted">({dashboardData?.suspended_users || 0} suspended)</span>
-              </li>
-              <li>
-                <span className="dot green" /> 
-                <span className="text">Translations Today: {dashboardData?.translations_today || 0}</span> 
-                <span className="muted">({dashboardData?.translations_month || 0} this month)</span>
-              </li>
-              <li>
-                <span className="dot gold" /> 
-                <span className="text">Active Users Today: {dashboardData?.active_users_today || 0}</span> 
-                <span className="muted">({dashboardData?.total_favorites || 0} total favorites)</span>
-              </li>
-            </ul>
-          </div>
+
         </div>
     </AdminLayout>
   );

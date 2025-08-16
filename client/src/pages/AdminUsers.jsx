@@ -7,7 +7,7 @@ import { getAdminUsers, suspendUser, unsuspendUser, isAdmin, register, updateUse
 function AddUserModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
+    phone: '',
     password: '',
     role: 'user'
   });
@@ -21,7 +21,7 @@ function AddUserModal({ isOpen, onClose, onSuccess }) {
 
     try {
       await register(formData);
-      setFormData({ full_name: '', email: '', password: '', role: 'user' });
+      setFormData({ full_name: '', phone: '', password: '', role: 'user' });
       onSuccess();
       onClose();
     } catch (err) {
@@ -37,58 +37,83 @@ function AddUserModal({ isOpen, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Add New User</h3>
+          <h3>Create New User</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="full_name">Full Name *</label>
-            <input
-              type="text"
-              id="full_name"
-              value={formData.full_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Full Name
+            </label>
+            <input 
+              type="text" 
+              value={formData.full_name} 
+              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))} 
+              placeholder="full name" 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }} 
               required
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="email">Email *</label>
-            <input
-              type="email"
-              id="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              Phone Number
+            </label>
+            <input 
+              type="tel" 
+              value={formData.phone} 
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} 
+              placeholder="phone number" 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }} 
               required
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password *</label>
-            <input
-              type="password"
-              id="password"
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Enter 9-digit number without +252
+              <span style={{ float: 'right', color: '#1a73e8' }}>{formData.phone.length}/9</span>
+            </div>
+            
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <circle cx="12" cy="16" r="1"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Password
+            </label>
+            <input 
+              type="password" 
+              value={formData.password} 
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))} 
+              placeholder="••••••••" 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }} 
               required
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="role">Role *</label>
-            <select
-              id="role"
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+            
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+              Role
+            </label>
+            <select 
+              value={formData.role} 
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))} 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }}
               required
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-          </div>
-          {error && <div className="error-message">{error}</div>}
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            
+            {error && <div style={{ color: '#dc2626', fontSize: '14px', marginTop: '8px' }}>{error}</div>}
+            
+            <button disabled={loading} type="submit" className="translate-btn-main" style={{ width: '100%', marginTop: 12 }}>
               {loading ? 'Creating...' : 'Create User'}
             </button>
           </div>
@@ -102,7 +127,7 @@ function AddUserModal({ isOpen, onClose, onSuccess }) {
 function EditUserModal({ isOpen, onClose, onSuccess, user }) {
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
+    phone: '',
     role: 'user'
   });
   const [loading, setLoading] = useState(false);
@@ -113,7 +138,7 @@ function EditUserModal({ isOpen, onClose, onSuccess, user }) {
     if (user) {
       setFormData({
         full_name: user.full_name || '',
-        email: user.email || '',
+        phone: user.phone || '',
         role: user.role || 'user'
       });
     }
@@ -145,44 +170,62 @@ function EditUserModal({ isOpen, onClose, onSuccess, user }) {
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="edit_full_name">Full Name *</label>
-            <input
-              type="text"
-              id="edit_full_name"
-              value={formData.full_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Full Name
+            </label>
+            <input 
+              type="text" 
+              value={formData.full_name} 
+              onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))} 
+              placeholder="full name" 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }} 
               required
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit_email">Email *</label>
-            <input
-              type="email"
-              id="edit_email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              Phone Number
+            </label>
+            <input 
+              type="tel" 
+              value={formData.phone} 
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} 
+              placeholder="phone number" 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }} 
               required
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit_role">Role *</label>
-            <select
-              id="edit_role"
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Enter 9-digit number without +252
+              <span style={{ float: 'right', color: '#1a73e8' }}>{formData.phone.length}/9</span>
+            </div>
+            
+            <label style={{ display: 'flex', alignItems: 'center', color: '#1a73e8' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+              Role
+            </label>
+            <select 
+              value={formData.role} 
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))} 
+              style={{ padding: 10, borderRadius: 8, border: '1px solid #1a73e8' }}
               required
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
-          </div>
-          {error && <div className="error-message">{error}</div>}
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            
+            {error && <div style={{ color: '#dc2626', fontSize: '14px', marginTop: '8px' }}>{error}</div>}
+            
+            <button disabled={loading} type="submit" className="translate-btn-main" style={{ width: '100%', marginTop: 12 }}>
               {loading ? 'Updating...' : 'Update User'}
             </button>
           </div>
@@ -209,7 +252,7 @@ export default function AdminUsers() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return users;
-    return users.filter(u => (u.email || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q));
+    return users.filter(u => (u.phone || '').toLowerCase().includes(q) || (u.full_name || '').toLowerCase().includes(q));
   }, [users, search]);
 
   async function load() {
@@ -235,16 +278,7 @@ export default function AdminUsers() {
     load();
   }, [navigate, currentPage]);
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this user?')) return;
-    try {
-      // This function is no longer used with the new API, but kept for now
-      // await deleteUser(id); 
-      setUsers(prev => prev.filter(u => u._id !== id));
-    } catch (e) {
-      alert(e.message || 'Failed to delete');
-    }
-  }
+
 
   async function handleToggleSuspend(u) {
     try {
@@ -278,11 +312,11 @@ export default function AdminUsers() {
       // Export directly from frontend data (no API call needed)
       const csvContent = [
         // CSV header
-        ['Name', 'Email', 'Role', 'Created At', 'Status'].join(','),
+        ['Full Name', 'Phone Number', 'Role', 'Created At', 'Status'].join(','),
         // CSV data rows
         ...users.map(user => [
           `"${(user.full_name || '').replace(/"/g, '""')}"`,
-          `"${(user.email || '').replace(/"/g, '""')}"`,
+          `"${(user.phone || '').replace(/"/g, '""')}"`,
           `"${(user.role || '').replace(/"/g, '""')}"`,
           `"${user.created_at ? new Date(user.created_at).toLocaleDateString() : ''}"`,
           `"${user.is_suspended ? 'Suspended' : 'Active'}"`
@@ -357,23 +391,7 @@ export default function AdminUsers() {
       <path d="m15 5 4 4"/>
     </svg>
   );
-  const TrashIcon = () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 6h18"/>
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-    </svg>
-  );
+
 
   return (
     <AdminLayout title="User Management" subtitle="Manage all registered users">
@@ -395,8 +413,8 @@ export default function AdminUsers() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
+                <th>Full Name</th>
+                <th>Phone Number</th>
                 <th>Role</th>
                 <th>Created At</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -409,7 +427,7 @@ export default function AdminUsers() {
                 return (
                   <tr key={u._id || idx}>
                     <td style={{ fontWeight: 600 }}>{u.full_name || '-'}</td>
-                    <td>{u.email}</td>
+                    <td>{u.phone || '-'}</td>
                     <td style={{ fontWeight: 700, textTransform: 'capitalize' }}>{role}</td>
                     <td>{joined}</td>
                     <td style={{ textAlign: 'center' }}>
@@ -433,9 +451,6 @@ export default function AdminUsers() {
                           onClick={() => handleEditUser(u)}
                         >
                           <EditIcon />
-                        </button>
-                        <button className="action-chip red" title="Delete" onClick={() => handleDelete(u._id)}>
-                          <TrashIcon />
                         </button>
                       </div>
                     </td>

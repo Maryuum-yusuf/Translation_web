@@ -79,9 +79,9 @@ export function getAuth() {
   if (cookieToken) {
     const payload = decodeJwt(decodeURIComponent(cookieToken));
     const inferredRole = payload?.role || payload?.custom?.role || (Array.isArray(payload?.roles) && payload.roles.includes('SYS_ADMIN') ? 'admin' : undefined);
-    const email = payload?.email;
+    const phone = payload?.phone;
     const fullName = payload?.full_name || payload?.name;
-    return { token: decodeURIComponent(cookieToken), role: inferredRole, email, fullName };
+    return { token: decodeURIComponent(cookieToken), role: inferredRole, phone, fullName };
   }
   
   // Check for legacy auth storage
@@ -164,14 +164,14 @@ export async function api(path, { method = 'GET', body, headers = {} } = {}) {
 }
 
 // Auth
-export async function login({ email, password }) {
-  const data = await api('/login', { method: 'POST', body: { email, password } });
-  setAuth({ token: data.token, role: data.role, fullName: data.full_name, email });
+export async function login({ phone, password }) {
+  const data = await api('/login', { method: 'POST', body: { phone, password } });
+  setAuth({ token: data.token, role: data.role, fullName: data.full_name, phone });
   return data;
 }
 
-export async function register({ full_name, email, password, role = 'user' }) {
-  return api('/register', { method: 'POST', body: { full_name, email, password, role } });
+export async function register({ full_name, phone, password, role = 'user' }) {
+  return api('/register', { method: 'POST', body: { full_name, phone, password, role } });
 }
 
 export function logout() {
@@ -230,6 +230,21 @@ export function exportUsers() {
 
 export function exportAnalytics() {
   return api('/admin/analytics/export');
+}
+
+// Reports API functions
+export function getTranslationsReport(params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return api(`/admin/reports/translations?${queryString}`);
+}
+
+export function exportTranslationsReport(params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return api(`/admin/reports/translations/export?${queryString}`);
+}
+
+export function getReportsSummary() {
+  return api('/admin/reports/summary');
 }
 
 
